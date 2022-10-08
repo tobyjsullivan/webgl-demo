@@ -192,9 +192,11 @@ function toCanvasNode(obj) {
 }
 
 function render(two, scene) {
-  console.time("render");
+  console.time("refresh");
 
+  console.time("parse");
   const canvasTree = toCanvasNode(scene);
+  console.timeEnd("parse");
   console.info(`[render] canvasTree:`, canvasTree);
 
   const context = {
@@ -205,13 +207,20 @@ function render(two, scene) {
       height: two.height,
     },
   };
+  console.time("layout");
   const { nodes } = canvasTree.toRenderNodes(context);
+  console.timeEnd("layout");
   const renderTree = new ContainerRenderNode({ children: nodes });
   console.info(`[render] renderTree:`, renderTree);
-  renderTree.render(two);
 
-  two.update();
+  console.time("render");
+  renderTree.render(two);
   console.timeEnd("render");
+
+  console.time("paint");
+  two.update();
+  console.timeEnd("paint");
+  console.timeEnd("refresh");
 }
 
 function main() {
