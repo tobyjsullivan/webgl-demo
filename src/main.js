@@ -39,21 +39,24 @@ class RectangleRenderNode extends RenderNode {
     super(props);
   }
 
-  render(two) {
+  render(app) {
     const { x, y, width, height, fill, children } = this.props;
 
     console.info(`[Rectangle::render]`, { x, y, width, height });
 
-    const centerX = width / 2 + x;
-    const centerY = height / 2 + y;
+    // TODO: Must destroy graphics object after scene is drawn
+    const graphics = new PIXI.Graphics();
 
-    // TODO: May need to translate from pixels to units (not sure)
-    const rect = two.makeRectangle(centerX, centerY, width, height);
-    rect.fill = fill;
-    rect.stroke = "none";
+    graphics.beginFill(fill);
+    graphics.drawRect(x, y, width, height);
+    graphics.endFill();
+
+    app.stage.addChild(graphics);
+
+    setInterval(() => (graphics.x += (Math.random() - 0.5) * 50), 1000);
 
     for (const child of children) {
-      child.render(two);
+      child.render(app);
     }
   }
 }
@@ -165,7 +168,7 @@ class CanvasRectangleNode extends CanvasNode {
           y,
           width: w,
           height: h,
-          fill: backgroundColor,
+          fill: backgroundColor && PIXI.utils.string2hex(backgroundColor),
           children: childRenderNodes,
         }),
       ],
@@ -191,7 +194,7 @@ function toCanvasNode(obj) {
   return new CanvasRectangleNode({ ...props, children: childNodes });
 }
 
-function render(two, scene) {
+function render(app, scene) {
   console.time("refresh");
 
   console.time("parse");
@@ -203,10 +206,11 @@ function render(two, scene) {
     parent: {
       x: 0,
       y: 0,
-      width: two.width,
-      height: two.height,
+      width: app.view.width,
+      height: app.view.height,
     },
   };
+  console.info(`[render] context:`, context);
   console.time("layout");
   const { nodes } = canvasTree.toRenderNodes(context);
   console.timeEnd("layout");
@@ -214,19 +218,23 @@ function render(two, scene) {
   console.info(`[render] renderTree:`, renderTree);
 
   console.time("render");
-  renderTree.render(two);
+  renderTree.render(app);
   console.timeEnd("render");
-
-  console.time("paint");
-  two.update();
-  console.timeEnd("paint");
   console.timeEnd("refresh");
 }
 
 function main() {
-  const $root = document.getElementById("root");
+  PIXI.utils.sayHello("WebGL");
 
-  // $root.innerHTML = `<p>Hello world!</p>`;
+  const pixiOpts = {
+    width: 512,
+    height: 512,
+    antialias: true,
+    resizeTo: window,
+    autoDensity: true,
+  };
+  const app = new PIXI.Application(pixiOpts);
+  document.body.appendChild(app.view);
 
   const scene = {
     type: "rect",
@@ -280,10 +288,10 @@ function main() {
     ],
   };
 
-  const params = { fullscreen: true, type: "WebGLRenderer" };
-  const two = new Two(params).appendTo($root);
+  // const params = { fullscreen: true, type: "WebGLRenderer" };
+  // const two = new Two(params).appendTo($root);
 
-  render(two, scene);
+  render(app, scene);
 }
 
 main();
